@@ -58,3 +58,52 @@ print(X_train[0][:500])
 print("\nCorresponding Label:")
 print("Positive" if y_train[0] == 1 else "Negative")
 
+# ------------------------------------------------
+# Phase 2
+# ------------------------------------------------
+
+# ------------------------------------------------
+# Imports
+# ------------------------------------------------
+
+import re
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
+# ------------------------------------------------
+# Preprocess raw data
+# ------------------------------------------------
+
+def preprocess_text(text):
+    """
+    Cleans raw text for NLP processing
+    """
+    # Lowercase
+    text = text.lower()
+
+    # Remove punctuation and special characters
+    text = re.sub(r"[^a-z\s]", "", text)
+
+    # Remove extra whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+
+    # Remove stopwords
+    tokens = text.split()
+    tokens = [word for word in tokens if word not in ENGLISH_STOP_WORDS]
+
+    return " ".join(tokens)
+
+# ------------------------------------------------
+# Apply preprocessing to tran/validation sets
+# ------------------------------------------------
+
+# Apply preprocessing without overwriting X_train
+X_train_clean = [preprocess_text(review) for review in X_train]
+X_val_clean = [preprocess_text(review) for review in X_val]
+
+# ------------------------------------------------
+# Sanity check
+# ------------------------------------------------
+
+print("\nOriginal Review:")
+print(X_train[0][:300])
+
