@@ -170,6 +170,71 @@ print(f"y_val length: {len(y_val)}")
 print(f"y_val_pred length: {len(y_val_pred)}")
 print("Unique predicted labels:", set(y_val_pred))
 
+# ------------------------------------------------
+# Phase 6: Analysis and Improvement
+# ------------------------------------------------
+#*******************Phase 6A***********************
+
+# Import library
+import numpy as np
+
+# Find incorrect predictions
+incorrect_indices = np.where(y_val != y_val_pred)[0]
+print(f"\nNumber of incorrect predictions: {len(incorrect_indices)}")
+
+# Inspect a few mistakes
+for idx in incorrect_indices[:5]:
+    print("\nReview:")
+    print(X_val[idx][:300])
+    print("True label:", y_val[idx])
+    print("Predicted label:", y_val_pred[idx])
+
+#*******************Phase 6B***********************
+
+# Improve TF-IDF
+vectorizer = TfidfVectorizer(
+    max_features=30000,
+    ngram_range=(1, 2),
+    min_df=5,
+    max_df=0.9
+)
+
+# Fit on training data
+X_train_tfidf = vectorizer.fit_transform(X_train_clean)
+X_val_tfidf = vectorizer.transform(X_val_clean)
+
+# Improve logistic regression
+model = LogisticRegression(
+    max_iter=2000,
+    C=2.0,
+    n_jobs=-1
+)
+
+# Train Model
+model.fit(X_train_tfidf, y_train)
+
+#*******************Phase 6C***********************
+
+# Safety check: ensure model is trained
+if not hasattr(model, "coef_"):
+    raise RuntimeError("Model must be trained before extracting coefficients.")
+
+# Get feature names and learned coefficients 
+feature_names = vectorizer.get_feature_names_out()
+coefficients = model.coef_[0]
+
+# Top positive and negative features
+top_positive = np.argsort(coefficients)[-10:]
+top_negative = np.argsort(coefficients)[:10]
+
+print("\nTop Positive Words:")
+for i in reversed(top_positive):
+    print(feature_names[i])
+
+print("\nTop Negative Words:")
+for i in top_negative:
+    print(feature_names[i])
+    
 
 
 
