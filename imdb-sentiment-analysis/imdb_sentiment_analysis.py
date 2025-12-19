@@ -147,3 +147,30 @@ model.fit(X_train_tfidf, y_train)
 print("\nModel Training Complete.")
 print(f"Number of features learned: {model.coef_.shape[1]}")
 
+# ------------------------------------------------
+# Phase 5: Evaluation
+# ------------------------------------------------
+# Import libraries
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# Generate predicitons
+y_val_pred = model.predict(X_val_tfidf)
+
+# Determine accuracy
+val_accuracy = accuracy_score(y_val, y_val_pred)
+print(f"\nValidation Accuracy: {val_accuracy:.4f}")
+
+# Confusion matrix
+print("\nConfusion Matrix:")
+
+# ------------------------------------------------
+# Sanity Check
+# ------------------------------------------------
+print(f"y_val length: {len(y_val)}")
+print(f"y_val_pred length: {len(y_val_pred)}")
+print("Unique predicted labels:", set(y_val_pred))
+
+
+
+
+
