@@ -9,10 +9,7 @@ train/validation splits suitable for classical NLP pipelines
 (Bag-of-Words, TF-IDF) using scikit-learn.
 """
 
-# ------------------------------------------------
-# Imports
-# ------------------------------------------------
-
+# Imports libraries
 from datasets import load_dataset
 from sklearn.model_selection import train_test_split
 
@@ -62,18 +59,12 @@ print("Positive" if y_train[0] == 1 else "Negative")
 # Phase 2
 # ------------------------------------------------
 
-# ------------------------------------------------
-# Imports
-# ------------------------------------------------
-
+# Import library
 import re
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
-# ------------------------------------------------
 # Preprocess raw data
-# ------------------------------------------------
-
-def preprocess_text(text):
+def preprocess(text):
     """
     Cleans raw text for NLP processing
     """
@@ -92,10 +83,6 @@ def preprocess_text(text):
 
     return " ".join(tokens)
 
-# ------------------------------------------------
-# Apply preprocessing to tran/validation sets
-# ------------------------------------------------
-
 # Apply preprocessing without overwriting X_train
 X_train_clean = [preprocess(review) for review in X_train]
 X_val_clean = [preprocess(review) for review in X_val]
@@ -103,8 +90,38 @@ X_val_clean = [preprocess(review) for review in X_val]
 # ------------------------------------------------
 # Sanity check
 # ------------------------------------------------
-
 print("\nOriginal Review:")
 print(X_train[0][:300])
 
+print("\nPreprocessed Review:")
+print(X_train_clean[0][:300])
+
+# ------------------------------------------------
+# Phase 3
+# ------------------------------------------------
+
+# Import library
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Initialize TF-IDF Vectorizer
+tfidf = TfidfVectorizer(
+    max_features=5000,
+    ngram_range=(1, 2),
+)
+
+# Fit on training data only
+X_train_tfidf = tfidf.fit_transform(X_train_clean)
+
+# Transform valadation data only
+X_val_tfidf = tfidf.transform(X_val_clean)
+
+# ------------------------------------------------
+# Sanity Check
+# ------------------------------------------------
+print("\nTF-IDF Feature Matrix Shape:")
+print("Training:", X_train_tfidf.shape)
+print("Validation:", X_val_tfidf.shape)
+
+print("\nSample feature names:")
+print(tfidf.get_feature_names_out()[:20])
 
