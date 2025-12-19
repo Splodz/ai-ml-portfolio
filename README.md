@@ -44,13 +44,34 @@ Includes:
 
 ---
 
-### 🚧 Upcoming Projects
+## 🚀 Future Work & Planned Projects
 
-The portfolio will be expanded with additional projects, including:
+This portfolio will continue to expand as I progress through advanced coursework and hands-on projects. Planned additions include:
+
+### 🧠 Natural Language Processing (NLP)
+- Text preprocessing pipelines (tokenization, lowercasing, stopword removal, lemmatization)
+- Bag-of-Words (BoW) and TF-IDF feature representations
+- Classical NLP classification models
+- Word embeddings (Word2Vec, GloVe, and contextual embeddings)
+
+### 🧩 Deep Learning for NLP
+- Neural network–based text classifiers
+- Embedding layers and learned representations
+- Sequence models (RNNs / LSTMs)
+- Transformer-based architectures (introductory projects)
+
+### 🖼️ Computer Vision
 - Convolutional Neural Networks (CNNs) for image classification
-- Generative Adversarial Networks (GANs)
-- Natural Language Processing (NLP) models
-- Advanced model evaluation and optimization techniques
+- Transfer learning with pretrained models
+- Data augmentation and regularization techniques
+
+### 🔬 Advanced Topics
+- Model evaluation and error analysis
+- Overfitting mitigation strategies
+- Scalable training workflows
+- Experiment tracking and reproducibility
+
+Each project will include a dedicated README explaining the problem, methodology, and results, along with clean and well-documented code.
 
 ---
 
