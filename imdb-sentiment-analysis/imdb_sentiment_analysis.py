@@ -1,5 +1,5 @@
 # ------------------------------------------------
-# Phase 1
+# Phase 1: Data Acqusition, Inspection, Splitting
 # ------------------------------------------------
 """
 IMDb Sentiment Analysis – Phase 1: Dataset Loading
@@ -56,7 +56,7 @@ print("\nCorresponding Label:")
 print("Positive" if y_train[0] == 1 else "Negative")
 
 # ------------------------------------------------
-# Phase 2
+# Phase 2: Preprocessing
 # ------------------------------------------------
 
 # Import library
@@ -97,7 +97,7 @@ print("\nPreprocessed Review:")
 print(X_train_clean[0][:300])
 
 # ------------------------------------------------
-# Phase 3
+# Phase 3: Transform
 # ------------------------------------------------
 
 # Import library
@@ -124,4 +124,26 @@ print("Validation:", X_val_tfidf.shape)
 
 print("\nSample feature names:")
 print(tfidf.get_feature_names_out()[:20])
+
+# ------------------------------------------------
+# Phase 4: Modeling
+# ------------------------------------------------
+
+# Import libraries
+from sklearn.linear_model import LogisticRegression
+
+# Create model
+model = LogisticRegression(
+    max_iter=5000,
+    random_state=42,
+)
+
+# Train model
+model.fit(X_train_tfidf, y_train)
+
+# ------------------------------------------------
+# Sanity Check
+# ------------------------------------------------
+print("\nModel Training Complete.")
+print(f"Number of features learned: {model.coef_.shape[1]}")
 
