@@ -97,8 +97,8 @@ def preprocess_text(text):
 # ------------------------------------------------
 
 # Apply preprocessing without overwriting X_train
-X_train_clean = [preprocess_text(review) for review in X_train]
-X_val_clean = [preprocess_text(review) for review in X_val]
+X_train_clean = [preprocess(review) for review in X_train]
+X_val_clean = [preprocess(review) for review in X_val]
 
 # ------------------------------------------------
 # Sanity check
@@ -106,4 +106,5 @@ X_val_clean = [preprocess_text(review) for review in X_val]
 
 print("\nOriginal Review:")
 print(X_train[0][:300])
+
 
