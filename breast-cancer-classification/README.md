@@ -67,5 +67,24 @@ Exact results may vary slightly due to randomness in data splitting and weight i
 ```text
 breast_cancer_nn/
 │
-├── breast_cancer_nn.py   # Main training and evaluation script
-└── README.md             # Project documentation
+├── breast_cancer_nn.py      # Main training and evaluation script
+├── requirements.txt         # Project dependencies
+└── README.md                # Project documentation
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Splodz/ai-ml-portfolio.git
+cd ai-ml-portfolio/breast-cancer-classification
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+
+Run the model:
+
+```bash
+python breast_cancer_nn.py
