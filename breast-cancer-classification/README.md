@@ -1,22 +1,30 @@
 # Breast Cancer Classification with Neural Network (PyTorch)
 
-This project builds and trains a fully-connected neural network with two hidden layers to classify breast cancer tumors as **malignant** or **benign** using the Breast Cancer Wisconsin dataset from scikit-learn.
+This project uses a feedforward neural network built in PyTorch to classify breast cancer tumors as malignant or benign. It demonstrates data preprocessing, model training, and binary classification evaluation as part of an AI/ML portfolio.
 
-The goal of this project is to demonstrate foundational machine learning and deep learning skills, including:
-- Data preprocessing
-- Neural network design
-- Activation functions
-- Loss calculation
-- Backpropagation
-- Model evaluation
+## Overview
 
-This project is intended for both learning purposes and professional portfolio use.
+This project implements a neural network in PyTorch to perform binary classification on the Breast Cancer Wisconsin dataset from scikit-learn. The goal is to predict whether a tumor is malignant or benign based on diagnostic features.
 
+The project demonstrates the core steps of a machine learning pipeline:
+
+- loading and preprocessing structured medical data
+- splitting the dataset into training and test sets
+- building and training a neural network
+- evaluating model performance on unseen data
 ---
 
 ## Model Architecture
 
 A simple feedforward neural network (Multi-Layer Perceptron) with the following structure:
+
+Input Layer (30 features)
+        ↓
+Hidden Layer (32 neurons, ReLU)
+        ↓
+Hidden Layer (16 neurons, ReLU)
+        ↓
+Output Layer (1 neuron, Sigmoid)
 
 | Layer  | Type            | Size             | Activation |
 |-------:|-----------------|------------------|------------|
