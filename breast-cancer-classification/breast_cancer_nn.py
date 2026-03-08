@@ -7,6 +7,7 @@ import torch.optim as optim
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix, classification_report
 
 # ------------------------------------------------
 # Loading and Preparing the dataset
@@ -72,24 +73,20 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 # ------------------------------------------------
 
 num_epochs = 100
-
 for epoch in range(num_epochs):
     model.train()
-
-    outputs = model(X_train_tensor)  # FIXED variable name
-    loss = criterion(outputs, y_train_tensor)
-
     optimizer.zero_grad()
+    outputs = model(X_train_tensor)
+    loss = criterion(outputs, y_train_tensor)
     loss.backward()
     optimizer.step()
 
     if (epoch + 1) % 10 == 0:
         with torch.no_grad():
-            predicted = (outputs >= 0.5).float()
+            eval_outputs = model(X_train_tensor)  # ← fresh pass after weight update
+            predicted = (eval_outputs >= 0.5).float()
             correct = (predicted == y_train_tensor).sum().item()
-            total = y_train_tensor.size(0)
-            acc = correct / total * 100.0
-
+            acc = correct / y_train_tensor.size(0) * 100.0
         print(f"Epoch [{epoch + 1}/{num_epochs}] Loss: {loss.item():.4f} | Train Accuracy: {acc:.2f}%")
 
 # ------------------------------------------------
@@ -99,9 +96,20 @@ for epoch in range(num_epochs):
 model.eval()
 with torch.no_grad():
     test_outputs = model(X_test_tensor)
-    test_predicted = (test_outputs >= 0.5).float()
+    test_predicted = (test_outputs > 0.5).float()
     correct = (test_predicted == y_test_tensor).sum().item()
     total = y_test_tensor.size(0)
     test_acc = correct / total * 100.0
 
 print(f"\nTest Accuracy: {test_acc:.2f}%")
+
+# Convert tensors to numpy for sklearn metrics
+
+y_pred = test_predicted.cpu().numpy().ravel()
+y_true = y_test_tensor.cpu().numpy().ravel()
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_true, y_pred))
+
+print("\nClassification Report:")
+print(classification_report(y_true, y_pred, target_names=["malignant", "benign"]))
