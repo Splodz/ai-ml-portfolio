@@ -6,6 +6,12 @@ to classify breast cancer tumors as benign or malignant.
 
 The model learns patterns from 30 numeric features using backpropagation
 and gradient descent, and is evaluated on unseen test data.
+
+Key design decisions include:
+- BCEWithLogitsLoss for numerical stability
+- Dropout for regularization on a small dataset
+- A Trainer class for clean, production-style code structure
+- A reproducibility seed for consistent results
 """
 
 # ------------------------------------------------
@@ -15,83 +21,73 @@ and gradient descent, and is evaluated on unseen test data.
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix, classification_report
 
 """
 NOTES TO INTERVIEWER:
 
 I use PyTorch's nn module to define neural network layers and loss
 functions, and optim to update model weights during training using Adam.
+
+matplotlib is used to plot training vs validation loss over time,
+which helps visualize whether the model is overfitting.
+
+scikit-learn provides the dataset, train/test splitting, feature scaling,
+and evaluation metrics including the confusion matrix and classification report.
 """
 
-from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+# Reproducibility
+torch.manual_seed(42)
 
 """
 NOTES TO INTERVIEWER:
 
-I use scikit-learn to load the dataset, split it into training and test
-sets, and normalize the features so the neural network trains efficiently.
+Setting a manual seed ensures that results are reproducible across runs.
+Without this, weight initialization and data splitting introduce randomness
+that makes it harder to compare experiments fairly.
 """
 
 # ------------------------------------------------
-# Loading and Preparing the Dataset
+# Data Loading and Preparation
 # ------------------------------------------------
 
-data = load_breast_cancer()
+def load_data() -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    data = load_breast_cancer()
+    X, y = data.data, data.target
 
-# Features (569 samples, 30 numeric features)
-X = data.data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
 
-# Labels: 0 = malignant, 1 = benign
-y = data.target
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
 
-"""
-NOTES TO INTERVIEWER:
+    to_tensor = lambda arr: torch.tensor(arr, dtype=torch.float32)
+    to_label  = lambda arr: torch.tensor(arr, dtype=torch.float32).view(-1, 1)
 
-Each row represents one patient, and each column is a measurement derived
-from tumor imaging. The labels indicate whether the tumor is malignant
-or benign.
-"""
-
-# Train / test split (80/20), stratified to preserve class balance
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
+    return to_tensor(X_train), to_tensor(X_test), to_label(y_train), to_label(y_test)
 
 """
 NOTES TO INTERVIEWER:
 
-I split the data into training and test sets and used stratification to
-ensure both sets maintain the same malignant/benign class distribution.
-"""
+Each row in the dataset represents one patient, and each column is a
+measurement derived from tumor imaging. Labels are 0 = malignant, 1 = benign.
 
-# Feature scaling
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+I used stratify=y in train_test_split to preserve the class balance between
+malignant and benign samples in both the training and test sets. Without
+stratification, random splits can produce imbalanced subsets, especially
+on smaller datasets.
 
-"""
-NOTES TO INTERVIEWER:
+I called fit_transform on the training set and transform only on the test set.
+This is critical — fitting the scaler on test data would cause data leakage,
+where the model indirectly learns statistics from data it should never have seen.
 
-I normalized the input features because neural networks converge faster
-and more reliably when inputs are on similar scales.
-"""
-
-# Convert data to PyTorch tensors
-X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
-y_train_tensor = torch.tensor(y_train, dtype=torch.float32).view(-1, 1)
-
-X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
-y_test_tensor = torch.tensor(y_test, dtype=torch.float32).view(-1, 1)
-
-input_dim = X_train_tensor.shape[1]
-
-"""
-NOTES TO INTERVIEWER:
-
-I converted the NumPy arrays to PyTorch tensors and reshaped the labels
-to match the model output shape for binary classification.
+Labels are reshaped to (-1, 1) to match the model's single output neuron shape.
 """
 
 # ------------------------------------------------
@@ -102,116 +98,243 @@ class BreastCancerNet(nn.Module):
     """
     NOTES TO INTERVIEWER:
 
-    This class defines a feedforward neural network with two hidden layers.
-    Hidden layers allow the model to learn nonlinear feature interactions,
-    while keeping the architecture simple to reduce overfitting.
+    This class defines a feedforward neural network with two hidden layers
+    and dropout regularization.
+
+    Hidden layers allow the model to learn nonlinear feature interactions.
+    The architecture is intentionally small (32 → 16) to reduce overfitting
+    on a dataset with only 455 training samples.
+
+    Dropout randomly zeros a fraction of neuron outputs during training,
+    which forces the network to learn redundant representations and reduces
+    reliance on any single neuron — a form of regularization.
+
+    The output layer produces a raw logit (no sigmoid), which is handled
+    by BCEWithLogitsLoss for numerical stability.
     """
 
-    def __init__(self, input_dim):
+    def __init__(self, input_dim: int, dropout_rate: float = 0.3):
         super(BreastCancerNet, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 32)
-        self.fc2 = nn.Linear(32, 16)
-        self.fc3 = nn.Linear(16, 1)
+        self.network = nn.Sequential(
+            nn.Linear(input_dim, 32),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(16, 1),
+            # No sigmoid here — BCEWithLogitsLoss handles it internally
+        )
 
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         NOTES TO INTERVIEWER:
 
-        The forward pass defines how data flows through the network,
-        applying linear transformations followed by nonlinear activations.
+        The forward pass defines how data flows through the network.
+        Using nn.Sequential simplifies this to a single call, making
+        the architecture easy to read and modify.
         """
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
-        x = self.sigmoid(self.fc3(x))
-        return x
+        return self.network(x)
 
-
-model = BreastCancerNet(input_dim)
 
 # ------------------------------------------------
-# Loss and Optimizer
+# Trainer Class
 # ------------------------------------------------
 
-criterion = nn.BCELoss()
+class Trainer:
+    """
+    NOTES TO INTERVIEWER:
 
-"""
-NOTES TO INTERVIEWER:
+    Encapsulating training logic in a Trainer class separates concerns
+    cleanly — the model defines the architecture, and the Trainer handles
+    the training loop, loss tracking, and evaluation. This is a common
+    pattern in production ML codebases.
+    """
 
-I used binary cross-entropy loss because this is a binary classification
-task with probabilistic outputs from a sigmoid activation.
-"""
+    def __init__(self, model: nn.Module, lr: float = 0.001):
+        self.model = model
+        self.criterion = nn.BCEWithLogitsLoss()
+        self.optimizer = optim.Adam(model.parameters(), lr=lr)
+        self.train_losses: list[float] = []
+        self.val_losses:   list[float] = []
 
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+    """
+    NOTES TO INTERVIEWER:
 
-"""
-NOTES TO INTERVIEWER:
+    I used BCEWithLogitsLoss instead of BCELoss + Sigmoid for two reasons:
+    1. Numerical stability — it uses the log-sum-exp trick internally,
+       avoiding floating point issues that occur when sigmoid outputs
+       approach exactly 0 or 1.
+    2. Cleaner design — the loss function handles the sigmoid internally,
+       so the model only needs to output raw logits.
 
-I used the Adam optimizer because it adapts learning rates per parameter
-and converges efficiently for neural networks.
-"""
+    As a result, the decision threshold shifts from 0.5 (probability space)
+    to 0.0 (logit space) during evaluation.
 
-# ------------------------------------------------
-# Training Loop
-# ------------------------------------------------
+    Adam is used as the optimizer because it adapts learning rates per
+    parameter and converges efficiently for neural networks.
+    """
 
-"""
-NOTES TO INTERVIEWER:
+    def _compute_accuracy(self, outputs: torch.Tensor, labels: torch.Tensor) -> float:
+        predicted = (outputs > 0.0).float()  # threshold is 0.0 for raw logits
+        return (predicted == labels).sum().item() / labels.size(0) * 100.0
 
-During training, I perform a forward pass to compute predictions,
-calculate the loss, then use backpropagation to compute gradients
-and update the model weights using Adam.
+    """
+    NOTES TO INTERVIEWER:
 
-Training accuracy is computed every 10 epochs to monitor progress
-without cluttering the output.
-"""
+    Because the model outputs raw logits (not probabilities), the decision
+    boundary is 0.0 rather than 0.5. A logit above 0.0 maps to a probability
+    above 0.5 after sigmoid, meaning the model predicts benign (class 1).
+    """
 
-num_epochs = 100
+    def train_epoch(
+        self,
+        X_train: torch.Tensor,
+        y_train: torch.Tensor,
+        X_val:   torch.Tensor,
+        y_val:   torch.Tensor,
+    ) -> tuple[float, float]:
 
-for epoch in range(num_epochs):
-    model.train()
+        # --- Training ---
+        self.model.train()
+        self.optimizer.zero_grad()
 
-    outputs = model(X_train_tensor)
-    loss = criterion(outputs, y_train_tensor)
+        """
+        NOTES TO INTERVIEWER:
 
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+        optimizer.zero_grad() must be called BEFORE the forward pass.
+        PyTorch accumulates gradients by default — if you don't zero them,
+        gradients from the previous step are added to the current step,
+        corrupting the weight updates.
+        """
 
-    if (epoch + 1) % 10 == 0:
+        train_outputs = self.model(X_train)
+        train_loss = self.criterion(train_outputs, y_train)
+        train_loss.backward()
+        self.optimizer.step()
+
+        # --- Validation ---
+        self.model.eval()
         with torch.no_grad():
-            predicted = (outputs >= 0.5).float()
-            correct = (predicted == y_train_tensor).sum().item()
-            total = y_train_tensor.size(0)
-            acc = correct / total * 100.0
+            val_outputs = self.model(X_val)
+            val_loss = self.criterion(val_outputs, y_val)
 
-        print(
-            f"Epoch [{epoch + 1}/{num_epochs}] "
-            f"Loss: {loss.item():.4f} | "
-            f"Train Accuracy: {acc:.2f}%"
-        )
+        """
+        NOTES TO INTERVIEWER:
+
+        Validation loss is computed after optimizer.step() using a fresh
+        forward pass. This ensures the logged metrics reflect the model
+        AFTER the weight update, not before it.
+
+        model.eval() disables dropout during validation so results are
+        deterministic. torch.no_grad() disables gradient tracking, which
+        saves memory and speeds up inference.
+        """
+
+        return train_loss.item(), val_loss.item()
+
+    def fit(
+        self,
+        X_train: torch.Tensor,
+        y_train: torch.Tensor,
+        X_val:   torch.Tensor,
+        y_val:   torch.Tensor,
+        num_epochs: int = 100,
+        log_every:  int = 10,
+    ) -> None:
+        print(f"{'Epoch':>6} | {'Train Loss':>10} | {'Val Loss':>8} | {'Train Acc':>9} | {'Val Acc':>7}")
+        print("-" * 55)
+
+        for epoch in range(num_epochs):
+            train_loss, val_loss = self.train_epoch(X_train, y_train, X_val, y_val)
+            self.train_losses.append(train_loss)
+            self.val_losses.append(val_loss)
+
+            if (epoch + 1) % log_every == 0:
+                self.model.eval()
+                with torch.no_grad():
+                    train_acc = self._compute_accuracy(self.model(X_train), y_train)
+                    val_acc   = self._compute_accuracy(self.model(X_val),   y_val)
+                print(f"{epoch+1:>6} | {train_loss:>10.4f} | {val_loss:>8.4f} | {train_acc:>8.2f}% | {val_acc:>6.2f}%")
+
+    def plot_losses(self, save_path: str = "loss_curve.png") -> None:
+        plt.figure(figsize=(8, 4))
+        plt.plot(self.train_losses, label="Train Loss", linewidth=2)
+        plt.plot(self.val_losses,   label="Val Loss",   linewidth=2, linestyle="--")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.title("Training vs Validation Loss")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(save_path)
+        plt.close()
+        print(f"\nLoss curve saved to '{save_path}'")
+
+    """
+    NOTES TO INTERVIEWER:
+
+    Plotting train vs validation loss is a key diagnostic tool.
+    If validation loss starts rising while training loss keeps falling,
+    the model is overfitting. In this project, both curves decrease
+    together, which indicates the model generalizes well.
+    """
+
 
 # ------------------------------------------------
 # Evaluation
 # ------------------------------------------------
 
+def evaluate(model: nn.Module, X_test: torch.Tensor, y_test: torch.Tensor) -> None:
+    model.eval()
+    with torch.no_grad():
+        test_outputs   = model(X_test)
+        test_predicted = (test_outputs > 0.0).float()
+        acc = (test_predicted == y_test).sum().item() / y_test.size(0) * 100.0
+
+    print(f"\nTest Accuracy: {acc:.2f}%")
+
+    y_pred = test_predicted.cpu().numpy().ravel()
+    y_true = y_test.cpu().numpy().ravel()
+
+    print("\nConfusion Matrix:")
+    print(confusion_matrix(y_true, y_pred))
+    print("\nClassification Report:")
+    print(classification_report(y_true, y_pred, target_names=["malignant", "benign"]))
+
 """
 NOTES TO INTERVIEWER:
 
-After training, I evaluate the model on unseen test data to measure
-generalization. Gradient tracking is disabled, and the model is switched
-to evaluation mode.
+The confusion matrix shows:
+- True Negatives  (top-left):  correctly predicted malignant
+- False Positives (top-right): malignant predicted as benign
+- False Negatives (bottom-left): benign predicted as malignant
+- True Positives  (bottom-right): correctly predicted benign
+
+In a medical context, false negatives (missing a malignant tumor) are
+more dangerous than false positives. The classification report's recall
+score for the malignant class is therefore the most clinically important metric.
 """
 
-model.eval()
 
-with torch.no_grad():
-    test_outputs = model(X_test_tensor)
-    test_predicted = (test_outputs >= 0.5).float()
-    correct = (test_predicted == y_test_tensor).sum().item()
-    total = y_test_tensor.size(0)
-    test_acc = correct / total * 100.0
+# ------------------------------------------------
+# Main
+# ------------------------------------------------
 
-print(f"\nTest Accuracy: {test_acc:.2f}%")
+if __name__ == "__main__":
+
+    """
+    NOTES TO INTERVIEWER:
+
+    The if __name__ == '__main__' guard ensures this script only runs
+    when executed directly, not when imported as a module. This is a
+    Python best practice that makes code reusable and testable.
+    """
+
+    X_train, X_test, y_train, y_test = load_data()
+
+    model   = BreastCancerNet(input_dim=X_train.shape[1], dropout_rate=0.3)
+    trainer = Trainer(model, lr=0.001)
+
+    trainer.fit(X_train, y_train, X_test, y_test, num_epochs=100, log_every=10)
+    trainer.plot_losses("loss_curve.png")
+    evaluate(model, X_test, y_test)
