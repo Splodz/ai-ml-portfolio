@@ -1,84 +1,66 @@
 # AI / Machine Learning Portfolio
 
-This repository contains a curated collection of **machine learning and artificial intelligence projects** developed using **Python and PyTorch**.
+This repository contains a curated collection of **machine learning and artificial intelligence projects** developed using Python, PyTorch, and Hugging Face Transformers.
 
-The goal of this portfolio is to demonstrate a strong understanding of:
-- Core machine learning concepts
-- Neural networks and deep learning
-- Model training and evaluation
-- Clean, readable, and well-documented code
-
-Each project is self-contained and includes documentation explaining the problem, approach, and results.
+Each project is self-contained and includes a clean production-style script, an annotated version documenting design decisions, and a dedicated README explaining the problem, methodology, and results.
 
 ---
 
 ## 🧠 Skills & Technologies
 
-- **Programming:** Python  
-- **Frameworks:** PyTorch, scikit-learn  
-- **Machine Learning:** Supervised learning, neural networks, model evaluation  
-- **Deep Learning:** Feedforward neural networks, CNNs (upcoming), GANs (upcoming)  
-- **Data Processing:** Feature scaling, train/test splitting  
-- **Tools:** Git, GitHub  
+- **Programming:** Python
+- **Frameworks:** PyTorch, scikit-learn, Hugging Face Transformers, XGBoost
+- **Machine Learning:** Supervised learning, classification, class imbalance handling (SMOTE), model evaluation
+- **Deep Learning:** Feedforward neural networks, transformer fine-tuning (BERT)
+- **NLP:** TF-IDF, bigram features, WordPiece tokenization, attention visualization
+- **Explainability:** SHAP (SHapley Additive exPlanations)
+- **Data Processing:** Feature engineering, missing value handling, label encoding, stratified splitting
+- **Tools:** Git, GitHub, Google Colab
 
 ---
 
 ## 📂 Projects
 
-### 1️⃣ Breast Cancer Classification with Neural Networks
+### 1️⃣ Breast Cancer Classification — Neural Network
 **Folder:** `breast-cancer-classification/`
 
-A feedforward neural network with two hidden layers trained to classify breast cancer tumors as **benign** or **malignant** using structured medical data.
+A feedforward neural network trained to classify breast tumors as **benign** or **malignant** using structured medical data from the UCI Breast Cancer Wisconsin dataset.
 
-**Key concepts demonstrated:**
-- Binary classification
-- Neural network architecture design
-- Backpropagation and gradient descent
-- Feature normalization
-- Model evaluation on unseen test data
-
-Includes:
-- A clean production-style training script
-- An annotated version documenting design decisions
-- Project-specific README with detailed explanations
+**Key concepts:** Binary classification · BCEWithLogitsLoss · Dropout regularization · Confusion matrix · PyTorch Trainer class
 
 ---
 
-## 🚀 Future Work & Planned Projects
+### 2️⃣ IMDb Sentiment Analysis — TF-IDF + Logistic Regression
+**Folder:** `imdb-sentiment-analysis/`
 
-This portfolio will continue to expand as I progress through advanced coursework and hands-on projects. Planned additions include:
+Classical NLP pipeline for binary sentiment classification on 50,000 IMDb movie reviews. Establishes a strong baseline that the BERT project directly builds on.
 
-### 🧠 Natural Language Processing (NLP)
-- Text preprocessing pipelines (tokenization, lowercasing, stopword removal, lemmatization)
-- Bag-of-Words (BoW) and TF-IDF feature representations
-- Classical NLP classification models
-- Word embeddings (Word2Vec, GloVe, and contextual embeddings)
+**Key concepts:** TF-IDF with bigrams · Data leakage prevention · Feature coefficient analysis · Error analysis · SentimentClassifier class
 
-### 🧩 Deep Learning for NLP
-- Neural network–based text classifiers
-- Embedding layers and learned representations
-- Sequence models (RNNs / LSTMs)
-- Transformer-based architectures (introductory projects)
+---
 
-### 🖼️ Computer Vision
-- Convolutional Neural Networks (CNNs) for image classification
-- Transfer learning with pretrained models
-- Data augmentation and regularization techniques
+### 3️⃣ Hospital Readmission Prediction — XGBoost + SHAP
+**Folder:** `hospital-readmission/`
 
-### 🔬 Advanced Topics
-- Model evaluation and error analysis
-- Overfitting mitigation strategies
-- Scalable training workflows
-- Experiment tracking and reproducibility
+End-to-end ML pipeline on a real-world clinical dataset (101,766 hospital encounters) predicting 30-day readmission for diabetic patients. Demonstrates messy data handling, domain-informed feature engineering, class imbalance handling, and explainable AI in a healthcare context.
 
-Each project will include a dedicated README explaining the problem, methodology, and results, along with clean and well-documented code.
+**Key concepts:** ICD-9 feature engineering · SMOTE oversampling · XGBoost · F1 and AUC-ROC on imbalanced data · SHAP interpretability · Clinical evaluation metrics
+
+---
+
+### 4️⃣ IMDb Sentiment Analysis — BERT Fine-Tuning
+**Folder:** `bert-sentiment-analysis/`
+
+Fine-tuned `bert-base-uncased` on the IMDb dataset for binary sentiment classification. Direct comparison to the classical TF-IDF baseline — same dataset, fundamentally different paradigm. Includes attention weight visualization showing what BERT focuses on per token.
+
+**Key concepts:** Transfer learning · WordPiece tokenization · AdamW with linear warmup · Gradient clipping · Attention visualization · Transformer fine-tuning
 
 ---
 
 ## 📌 Notes
 
 - Each project is organized in its own folder with a dedicated README.
-- Annotated scripts are included where helpful to document reasoning and design choices.
+- Annotated scripts (`*_with_interview_notes.py`) document the reasoning behind every design decision.
 - This portfolio is intended for academic, professional, and interview review.
 
 ---
