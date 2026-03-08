@@ -1,241 +1,285 @@
-# ------------------------------------------------
-# Phase 1: Data Acqusition, Inspection, Splitting
-# ------------------------------------------------
+# imdb_sentiment.py
 """
-IMDb Sentiment Analysis – Phase 1: Dataset Loading
+IMDb Sentiment Analysis — Classical NLP Pipeline
+=================================================
+Binary sentiment classification on the IMDb movie reviews dataset
+using a TF-IDF feature representation and Logistic Regression.
 
-This script loads the IMDb movie reviews dataset and prepares
-train/validation splits suitable for classical NLP pipelines
-(Bag-of-Words, TF-IDF) using scikit-learn.
+Pipeline:
+    1. Load and split data (Hugging Face datasets)
+    2. Text preprocessing (lowercasing, cleaning, stopword removal)
+    3. TF-IDF vectorization with bigrams
+    4. Logistic Regression classifier
+    5. Evaluation (accuracy, F1, confusion matrix)
+    6. Model interpretability (top positive/negative features)
 """
 
-# Imports libraries
+# ------------------------------------------------
+# Imports
+# ------------------------------------------------
+
+import re
+import numpy as np
 from datasets import load_dataset
 from sklearn.model_selection import train_test_split
-
-
-# ------------------------------------------------
-# Load IMDb Dataset
-# ------------------------------------------------
-
-# Load the IMDb dataset from Hugging Face
-dataset = load_dataset("imdb")
-
-# Extract text reviews and labels from the training split
-X = dataset["train"]["text"]      # List of review strings
-y = dataset["train"]["label"]     # 0 = negative, 1 = positive
-
-
-# ------------------------------------------------
-# Train / Validation Split
-# ------------------------------------------------
-
-# Create a validation split from the training data
-X_train, X_val, y_train, y_val = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42,
-    stratify=y
+from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
 )
 
 
 # ------------------------------------------------
-# Sanity Checks
+# Constants
 # ------------------------------------------------
 
-print("IMDb Dataset Loaded Successfully\n")
+RANDOM_STATE    = 42
+TEST_SIZE       = 0.2
+MAX_FEATURES    = 30000
+NGRAM_RANGE     = (1, 2)
+MIN_DF          = 5
+MAX_DF          = 0.9
+LR_C            = 2.0
+LR_MAX_ITER     = 2000
 
-print(f"Training samples: {len(X_train)}")
-print(f"Validation samples: {len(X_val)}")
-
-print("\nSample Review (first 500 characters):\n")
-print(X_train[0][:500])
-
-print("\nCorresponding Label:")
-print("Positive" if y_train[0] == 1 else "Negative")
 
 # ------------------------------------------------
-# Phase 2: Preprocessing
+# Data Loading
 # ------------------------------------------------
 
-# Import library
-import re
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-
-# Preprocess raw data
-def preprocess(text):
+def load_data() -> tuple[list[str], list[str], list[int], list[int], list[str], list[int]]:
     """
-    Cleans raw text for NLP processing
+    Load IMDb dataset from Hugging Face and create a train/validation split.
+
+    The test split is held out and only used for final evaluation.
+    Stratification preserves the 50/50 positive-negative class balance.
+
+    Returns:
+        X_train, X_val, y_train, y_val, X_test, y_test
     """
-    # Lowercase
+    dataset = load_dataset("imdb")
+
+    X_train_full = dataset["train"]["text"]
+    y_train_full = dataset["train"]["label"]
+    X_test       = dataset["test"]["text"]
+    y_test       = dataset["test"]["label"]
+
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_full,
+        y_train_full,
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE,
+        stratify=y_train_full,
+    )
+
+    print(f"Train samples:      {len(X_train)}")
+    print(f"Validation samples: {len(X_val)}")
+    print(f"Test samples:       {len(X_test)}")
+
+    return X_train, X_val, y_train, y_val, X_test, y_test
+
+
+# ------------------------------------------------
+# Preprocessing
+# ------------------------------------------------
+
+def preprocess(text: str) -> str:
+    """
+    Normalize raw review text for TF-IDF vectorization.
+
+    Steps:
+        1. Lowercase
+        2. Remove non-alphabetic characters
+        3. Collapse whitespace
+        4. Remove scikit-learn English stopwords
+
+    Args:
+        text: Raw review string.
+
+    Returns:
+        Cleaned, stopword-filtered string.
+    """
     text = text.lower()
-
-    # Remove punctuation and special characters
     text = re.sub(r"[^a-z\s]", "", text)
-
-    # Remove extra whitespace
     text = re.sub(r"\s+", " ", text).strip()
-
-    # Remove stopwords
-    tokens = text.split()
-    tokens = [word for word in tokens if word not in ENGLISH_STOP_WORDS]
-
+    tokens = [word for word in text.split() if word not in ENGLISH_STOP_WORDS]
     return " ".join(tokens)
 
-# Apply preprocessing without overwriting X_train
-X_train_clean = [preprocess(review) for review in X_train]
-X_val_clean = [preprocess(review) for review in X_val]
+
+def preprocess_corpus(corpus: list[str]) -> list[str]:
+    """Apply preprocess() to a list of review strings."""
+    return [preprocess(review) for review in corpus]
+
 
 # ------------------------------------------------
-# Sanity check
-# ------------------------------------------------
-print("\nOriginal Review:")
-print(X_train[0][:300])
-
-print("\nPreprocessed Review:")
-print(X_train_clean[0][:300])
-
-# ------------------------------------------------
-# Phase 3: Transform
+# Vectorizer
 # ------------------------------------------------
 
-# Import library
-from sklearn.feature_extraction.text import TfidfVectorizer
+def build_vectorizer() -> TfidfVectorizer:
+    """
+    Build a TF-IDF vectorizer with tuned hyperparameters.
 
-# Initialize TF-IDF Vectorizer
-tfidf = TfidfVectorizer(
-    max_features=5000,
-    ngram_range=(1, 2),
-)
+    Config rationale:
+        max_features=30000 : Captures a wide vocabulary while limiting noise
+        ngram_range=(1, 2) : Unigrams + bigrams capture phrase-level sentiment
+                             (e.g. "not good" vs "good")
+        min_df=5           : Drops rare terms that appear in fewer than 5 docs,
+                             reducing overfitting to low-frequency noise
+        max_df=0.9         : Drops near-universal terms that carry little
+                             discriminative signal
+    """
+    return TfidfVectorizer(
+        max_features=MAX_FEATURES,
+        ngram_range=NGRAM_RANGE,
+        min_df=MIN_DF,
+        max_df=MAX_DF,
+    )
 
-# Fit on training data only
-X_train_tfidf = tfidf.fit_transform(X_train_clean)
-
-# Transform valadation data only
-X_val_tfidf = tfidf.transform(X_val_clean)
 
 # ------------------------------------------------
-# Sanity Check
-# ------------------------------------------------
-print("\nTF-IDF Feature Matrix Shape:")
-print("Training:", X_train_tfidf.shape)
-print("Validation:", X_val_tfidf.shape)
-
-print("\nSample feature names:")
-print(tfidf.get_feature_names_out()[:20])
-
-# ------------------------------------------------
-# Phase 4: Modeling
+# Classifier
 # ------------------------------------------------
 
-# Import libraries
-from sklearn.linear_model import LogisticRegression
+class SentimentClassifier:
+    """
+    Logistic Regression sentiment classifier with TF-IDF features.
 
-# Create model
-model = LogisticRegression(
-    max_iter=5000,
-    random_state=42,
-)
+    Logistic Regression is a strong baseline for high-dimensional sparse
+    text features. It is fast, interpretable, and often competitive with
+    more complex models on bag-of-words representations.
 
-# Train model
-model.fit(X_train_tfidf, y_train)
+    C=2.0 applies mild L2 regularization — less regularization than the
+    default (C=1.0) to allow the model slightly more flexibility given
+    the large feature space.
+    """
+
+    def __init__(self):
+        self.vectorizer = build_vectorizer()
+        self.model = LogisticRegression(
+            C=LR_C,
+            max_iter=LR_MAX_ITER,
+            random_state=RANDOM_STATE,
+            n_jobs=-1,
+        )
+
+    def fit(self, X_train: list[str], y_train: list[int]) -> None:
+        """Fit vectorizer and classifier on training data."""
+        print("\nFitting TF-IDF vectorizer...")
+        X_train_tfidf = self.vectorizer.fit_transform(X_train)
+        print(f"Feature matrix shape: {X_train_tfidf.shape}")
+
+        print("Training Logistic Regression classifier...")
+        self.model.fit(X_train_tfidf, y_train)
+        print("Training complete.")
+
+    def predict(self, X: list[str]) -> np.ndarray:
+        """Transform and predict on new text data."""
+        return self.model.predict(self.vectorizer.transform(X))
+
+    def evaluate(self, X: list[str], y_true: list[int], split_name: str = "Validation") -> None:
+        """
+        Print accuracy, classification report, and confusion matrix.
+
+        Args:
+            X:          Raw (unvectorized) text samples.
+            y_true:     Ground truth labels.
+            split_name: Label for the printed output (e.g. 'Validation', 'Test').
+        """
+        y_pred = self.predict(X)
+        acc = accuracy_score(y_true, y_pred)
+
+        print(f"\n{'='*50}")
+        print(f"{split_name} Results")
+        print(f"{'='*50}")
+        print(f"Accuracy: {acc:.4f}")
+        print("\nClassification Report:")
+        print(classification_report(y_true, y_pred, target_names=["negative", "positive"]))
+        print("Confusion Matrix:")
+        print(confusion_matrix(y_true, y_pred))
+
+    def top_features(self, n: int = 10) -> None:
+        """
+        Print the most predictive positive and negative unigrams/bigrams.
+
+        Logistic Regression coefficients directly indicate feature importance
+        in a linear model — large positive coefficients signal positive
+        sentiment, large negative coefficients signal negative sentiment.
+
+        Args:
+            n: Number of top features to display per class.
+        """
+        if not hasattr(self.model, "coef_"):
+            raise RuntimeError("Model must be trained before extracting features.")
+
+        feature_names  = self.vectorizer.get_feature_names_out()
+        coefficients   = self.model.coef_[0]
+
+        top_positive = np.argsort(coefficients)[-n:][::-1]
+        top_negative = np.argsort(coefficients)[:n]
+
+        print(f"\nTop {n} Positive Features:")
+        for i in top_positive:
+            print(f"  {feature_names[i]:<25} coef: {coefficients[i]:.4f}")
+
+        print(f"\nTop {n} Negative Features:")
+        for i in top_negative:
+            print(f"  {feature_names[i]:<25} coef: {coefficients[i]:.4f}")
+
+    def inspect_errors(self, X_raw: list[str], y_true: list[int], n: int = 5) -> None:
+        """
+        Display misclassified examples for qualitative error analysis.
+
+        Reviewing errors helps identify systematic failure modes — for
+        example, sarcastic reviews or domain-specific vocabulary that
+        confuses the model.
+
+        Args:
+            X_raw:  Raw (unvectorized) text samples.
+            y_true: Ground truth labels.
+            n:      Number of errors to display.
+        """
+        y_pred = self.predict(X_raw)
+        incorrect = np.where(np.array(y_true) != y_pred)[0]
+        print(f"\nTotal misclassified: {len(incorrect)} / {len(y_true)}")
+
+        label_map = {0: "negative", 1: "positive"}
+        for idx in incorrect[:n]:
+            print(f"\n{'─'*50}")
+            print(f"True:      {label_map[y_true[idx]]}")
+            print(f"Predicted: {label_map[y_pred[idx]]}")
+            print(f"Review:    {X_raw[idx][:300]}")
+
 
 # ------------------------------------------------
-# Sanity Check
+# Main
 # ------------------------------------------------
-print("\nModel Training Complete.")
-print(f"Number of features learned: {model.coef_.shape[1]}")
 
-# ------------------------------------------------
-# Phase 5: Evaluation
-# ------------------------------------------------
-# Import libraries
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+if __name__ == "__main__":
 
-# Generate predicitons
-y_val_pred = model.predict(X_val_tfidf)
+    # 1. Load data
+    X_train, X_val, y_train, y_val, X_test, y_test = load_data()
 
-# Determine accuracy
-val_accuracy = accuracy_score(y_val, y_val_pred)
-print(f"\nValidation Accuracy: {val_accuracy:.4f}")
+    # 2. Preprocess
+    print("\nPreprocessing text...")
+    X_train_clean = preprocess_corpus(X_train)
+    X_val_clean   = preprocess_corpus(X_val)
+    X_test_clean  = preprocess_corpus(X_test)
+    print("Preprocessing complete.")
 
-# Confusion matrix
-print("\nConfusion Matrix:")
+    # 3. Train
+    classifier = SentimentClassifier()
+    classifier.fit(X_train_clean, y_train)
 
-# ------------------------------------------------
-# Sanity Check
-# ------------------------------------------------
-print(f"y_val length: {len(y_val)}")
-print(f"y_val_pred length: {len(y_val_pred)}")
-print("Unique predicted labels:", set(y_val_pred))
+    # 4. Validation evaluation
+    classifier.evaluate(X_val_clean, y_val, split_name="Validation")
 
-# ------------------------------------------------
-# Phase 6: Analysis and Improvement
-# ------------------------------------------------
-#*******************Phase 6A***********************
+    # 5. Error analysis
+    classifier.inspect_errors(X_val, y_val, n=5)
 
-# Import library
-import numpy as np
+    # 6. Feature interpretability
+    classifier.top_features(n=10)
 
-# Find incorrect predictions
-incorrect_indices = np.where(y_val != y_val_pred)[0]
-print(f"\nNumber of incorrect predictions: {len(incorrect_indices)}")
-
-# Inspect a few mistakes
-for idx in incorrect_indices[:5]:
-    print("\nReview:")
-    print(X_val[idx][:300])
-    print("True label:", y_val[idx])
-    print("Predicted label:", y_val_pred[idx])
-
-#*******************Phase 6B***********************
-
-# Improve TF-IDF
-vectorizer = TfidfVectorizer(
-    max_features=30000,
-    ngram_range=(1, 2),
-    min_df=5,
-    max_df=0.9
-)
-
-# Fit on training data
-X_train_tfidf = vectorizer.fit_transform(X_train_clean)
-X_val_tfidf = vectorizer.transform(X_val_clean)
-
-# Improve logistic regression
-model = LogisticRegression(
-    max_iter=2000,
-    C=2.0,
-    n_jobs=-1
-)
-
-# Train Model
-model.fit(X_train_tfidf, y_train)
-
-#*******************Phase 6C***********************
-
-# Safety check: ensure model is trained
-if not hasattr(model, "coef_"):
-    raise RuntimeError("Model must be trained before extracting coefficients.")
-
-# Get feature names and learned coefficients 
-feature_names = vectorizer.get_feature_names_out()
-coefficients = model.coef_[0]
-
-# Top positive and negative features
-top_positive = np.argsort(coefficients)[-10:]
-top_negative = np.argsort(coefficients)[:10]
-
-print("\nTop Positive Words:")
-for i in reversed(top_positive):
-    print(feature_names[i])
-
-print("\nTop Negative Words:")
-for i in top_negative:
-    print(feature_names[i])
-    
-
-
-
-
+    # 7. Final test set evaluation (held-out — run once only)
+    classifier.evaluate(X_test_clean, y_test, split_name="Test")
