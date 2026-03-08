@@ -1,5 +1,3 @@
-pip install xgboost shap imbalanced-learn
-
 # hospital_readmission.py
 """
 Hospital Readmission Prediction
