@@ -9,9 +9,10 @@ Each project is self-contained and includes a clean production-style script, an 
 ## 🧠 Skills & Technologies
 
 - **Programming:** Python
-- **Frameworks:** PyTorch, scikit-learn, Hugging Face Transformers, XGBoost
+- **Frameworks:** PyTorch, scikit-learn, Hugging Face Transformers, XGBoost, torchvision
 - **Machine Learning:** Supervised learning, classification, class imbalance handling (SMOTE), model evaluation
-- **Deep Learning:** Feedforward neural networks, transformer fine-tuning (BERT)
+- **Deep Learning:** Feedforward neural networks, CNNs, transformer fine-tuning (BERT)
+- **Computer Vision:** Transfer learning, data augmentation, two-stage fine-tuning, EfficientNet
 - **NLP:** TF-IDF, bigram features, WordPiece tokenization, attention visualization
 - **Explainability:** SHAP (SHapley Additive exPlanations)
 - **Data Processing:** Feature engineering, missing value handling, label encoding, stratified splitting
@@ -54,6 +55,15 @@ End-to-end ML pipeline on a real-world clinical dataset (101,766 hospital encoun
 Fine-tuned `bert-base-uncased` on the IMDb dataset for binary sentiment classification. Direct comparison to the classical TF-IDF baseline — same dataset, fundamentally different paradigm. Includes attention weight visualization showing what BERT focuses on per token.
 
 **Key concepts:** Transfer learning · WordPiece tokenization · AdamW with linear warmup · Gradient clipping · Attention visualization · Transformer fine-tuning
+
+---
+
+### 5️⃣ Food-101 Image Classification — EfficientNetB0
+**Folder:** `food-classification/`
+
+101-class food image classification using a pretrained EfficientNetB0 backbone fine-tuned on the Food-101 dataset (101,000 real-world food images). Demonstrates two-stage transfer learning, data augmentation, and top-1/top-5 evaluation — the standard approach for image classification in industry.
+
+**Key concepts:** Two-stage fine-tuning · Data augmentation · ImageNet normalization · Label smoothing · Cosine annealing · Best model checkpointing · Top-1 and Top-5 accuracy
 
 ---
 
