@@ -86,10 +86,13 @@ def load_data() -> tuple[list[str], list[str], list[int], list[int], list[str], 
     """
     dataset = load_dataset("imdb")
 
-    X_train_full = dataset["train"]["text"]
-    y_train_full = dataset["train"]["label"]
-    X_test       = dataset["test"]["text"]
-    y_test       = dataset["test"]["label"]
+    # Convert to plain Python lists — required for compatibility with
+    # newer datasets library versions (Arrow format causes TypeError with
+    # scikit-learn's train_test_split stratify parameter)
+    X_train_full = list(dataset["train"]["text"])
+    y_train_full = list(dataset["train"]["label"])
+    X_test       = list(dataset["test"]["text"])
+    y_test       = list(dataset["test"]["label"])
 
     X_train, X_val, y_train, y_val = train_test_split(
         X_train_full,
@@ -116,6 +119,13 @@ I create a validation split from the training data using stratify=y to
 preserve the class ratio. The test set is loaded but not touched until
 the very end — this is standard practice to ensure the final evaluation
 is unbiased and the model has never seen this data in any form.
+
+The dataset columns are explicitly converted to plain Python lists before
+being passed to scikit-learn. Hugging Face datasets return data in Apache
+Arrow format internally, which causes a TypeError with scikit-learn's
+train_test_split stratify parameter in newer library versions. Wrapping
+in list() is the correct fix — it's a compatibility detail worth knowing
+when mixing Hugging Face and scikit-learn in the same pipeline.
 
 Using type hints on the return signature makes the data contract explicit:
 downstream code knows exactly what types to expect.
