@@ -87,7 +87,8 @@ EfficientNet scales model depth, width, and resolution jointly using a compound 
 | Backbone | EfficientNetB0 (ImageNet pretrained) |
 | Backbone output | 1,280-dimensional feature vector |
 | Classification head | Dropout(0.4) → Linear(1280, 101) |
-| Total parameters | ~5.3M |
+| Total parameters | 4,136,929 |
+| Trainable params (Stage 1) | 129,381 (head only) |
 | Pretrained on | ImageNet-1K (1.2M images, 1,000 classes) |
 
 The original ImageNet head (Linear(1280, 1000)) is replaced with a task-specific head for 101 food classes.
@@ -103,7 +104,7 @@ Training in two stages is the industry best practice for transfer learning. It p
 | Parameter | Value |
 |-----------|-------|
 | Backbone | Frozen |
-| Trainable params | ~50k (head only) |
+| Trainable params | 129,381 (head only) |
 | Epochs | 5 |
 | Learning rate | 1e-3 |
 | Optimizer | Adam |
@@ -115,7 +116,7 @@ Training in two stages is the industry best practice for transfer learning. It p
 | Parameter | Value |
 |-----------|-------|
 | Backbone | Unfrozen |
-| Trainable params | ~5.3M (entire network) |
+| Trainable params | 4,136,929 (entire network) |
 | Epochs | 10 |
 | Learning rate | 1e-4 |
 | Optimizer | Adam + weight decay (1e-4) |
@@ -129,10 +130,39 @@ Training in two stages is the industry best practice for transfer learning. It p
 
 | Metric | Score |
 |--------|-------|
-| Top-1 Accuracy | — |
-| Top-5 Accuracy | — |
+| Top-1 Accuracy | **86.07%** |
+| Top-5 Accuracy | **97.05%** |
 
-> Results to be filled in after running `food_classifier.py`
+> The original Food-101 benchmark paper achieved ~77% Top-1 accuracy. This implementation exceeds that by ~9 percentage points using EfficientNetB0 with a two-stage fine-tuning strategy.
+
+### Training Log
+
+**Stage 1 — Feature Extraction**
+
+| Epoch | Train Loss | Train Acc | Val Loss | Val Acc |
+|-------|-----------|-----------|----------|---------|
+| 01/05 | 3.1950 | 0.3424 | 2.4408 | 0.5390 |
+| 02/05 | 2.9074 | 0.4078 | 2.3625 | 0.5558 |
+| 03/05 | 2.8559 | 0.4239 | 2.3353 | 0.5652 |
+| 04/05 | 2.8022 | 0.4355 | 2.3075 | 0.5745 |
+| 05/05 | 2.7695 | 0.4440 | 2.3087 | 0.5777 |
+
+**Stage 2 — Full Fine-Tuning**
+
+| Epoch | Train Loss | Train Acc | Val Loss | Val Acc |
+|-------|-----------|-----------|----------|---------|
+| 01/10 | 2.1886 | 0.6078 | 1.6176 | 0.7771 ✓ |
+| 02/10 | 1.8578 | 0.7048 | 1.4959 | 0.8148 ✓ |
+| 03/10 | 1.7079 | 0.7503 | 1.4321 | 0.8334 ✓ |
+| 04/10 | 1.6006 | 0.7812 | 1.3975 | 0.8404 ✓ |
+| 05/10 | 1.5188 | 0.8067 | 1.3631 | 0.8484 ✓ |
+| 06/10 | 1.4532 | 0.8253 | 1.3458 | 0.8530 ✓ |
+| 07/10 | 1.3997 | 0.8448 | 1.3367 | 0.8568 ✓ |
+| 08/10 | 1.3612 | 0.8574 | 1.3216 | 0.8605 ✓ |
+| 09/10 | 1.3413 | 0.8643 | 1.3199 | 0.8607 ✓ |
+| 10/10 | 1.3273 | 0.8676 | 1.3157 | 0.8607 |
+
+✓ = new best model checkpoint saved
 
 ### Training Curves
 
