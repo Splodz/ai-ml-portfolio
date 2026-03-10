@@ -24,11 +24,11 @@ Each project is self-contained and includes a clean production-style script, an 
 
 | # | Project | Model | Key Result |
 |---|---------|-------|------------|
-| 1 | Breast Cancer Classification | Feedforward NN | Binary classification on UCI dataset |
-| 2 | IMDb Sentiment — Baseline | TF-IDF + Logistic Regression | Classical NLP baseline |
-| 3 | Hospital Readmission Prediction | XGBoost + SHAP | AUC-ROC on 101,766 clinical encounters |
-| 4 | IMDb Sentiment — BERT | bert-base-uncased fine-tuned | Transformer vs. classical comparison |
-| 5 | Food-101 Classification | EfficientNetB0 | **86.07% Top-1 / 97.05% Top-5** (beats original paper ~77%) |
+| 1 | Breast Cancer Classification | Feedforward NN | **94.74% accuracy · 0.95 weighted F1** |
+| 2 | IMDb Sentiment — Baseline | TF-IDF + Logistic Regression | **88.07% accuracy · 0.88 F1** |
+| 3 | Hospital Readmission Prediction | XGBoost + SHAP | **AUC-ROC 0.58 · F1 0.19** on 101,766 clinical encounters (imbalanced, ~11% positive class) |
+| 4 | IMDb Sentiment — BERT | bert-base-uncased fine-tuned | **92.15% accuracy · 0.9219 F1 · 0.9752 AUC-ROC** (+3.2% over TF-IDF baseline) |
+| 5 | Food-101 Classification | EfficientNetB0 | **86.07% Top-1 · 97.05% Top-5** (beats original paper ~77%) |
 
 ---
 
