@@ -20,6 +20,18 @@ Each project is self-contained and includes a clean production-style script, an 
 
 ---
 
+## 📊 Results at a Glance
+
+| # | Project | Model | Key Result |
+|---|---------|-------|------------|
+| 1 | Breast Cancer Classification | Feedforward NN | Binary classification on UCI dataset |
+| 2 | IMDb Sentiment — Baseline | TF-IDF + Logistic Regression | Classical NLP baseline |
+| 3 | Hospital Readmission Prediction | XGBoost + SHAP | AUC-ROC on 101,766 clinical encounters |
+| 4 | IMDb Sentiment — BERT | bert-base-uncased fine-tuned | Transformer vs. classical comparison |
+| 5 | Food-101 Classification | EfficientNetB0 | **86.07% Top-1 / 97.05% Top-5** (beats original paper ~77%) |
+
+---
+
 ## 📂 Projects
 
 ### 1️⃣ Breast Cancer Classification — Neural Network
@@ -61,7 +73,7 @@ Fine-tuned `bert-base-uncased` on the IMDb dataset for binary sentiment classifi
 ### 5️⃣ Food-101 Image Classification — EfficientNetB0
 **Folder:** `food-classification/`
 
-101-class food image classification using a pretrained EfficientNetB0 backbone fine-tuned on the Food-101 dataset (101,000 real-world food images). Demonstrates two-stage transfer learning, data augmentation, and top-1/top-5 evaluation — the standard approach for image classification in industry.
+101-class food image classification using a pretrained EfficientNetB0 backbone fine-tuned on the Food-101 dataset (101,000 real-world food images). Achieves **86.07% Top-1 and 97.05% Top-5 accuracy**, exceeding the original Food-101 benchmark (~77%). Demonstrates two-stage transfer learning, data augmentation, and top-1/top-5 evaluation.
 
 **Key concepts:** Two-stage fine-tuning · Data augmentation · ImageNet normalization · Label smoothing · Cosine annealing · Best model checkpointing · Top-1 and Top-5 accuracy
 
