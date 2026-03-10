@@ -1,4 +1,4 @@
-# imdb_sentiment.py
+# imdb_sentiment_analysis.py
 """
 IMDb Sentiment Analysis — Classical NLP Pipeline
 =================================================
@@ -56,15 +56,22 @@ def load_data() -> tuple[list[str], list[str], list[int], list[int], list[str], 
     The test split is held out and only used for final evaluation.
     Stratification preserves the 50/50 positive-negative class balance.
 
+    Note: Hugging Face dataset columns are converted to plain Python lists
+    before passing to scikit-learn to avoid Arrow/numpy int64 type errors
+    with newer versions of the datasets library.
+
     Returns:
         X_train, X_val, y_train, y_val, X_test, y_test
     """
     dataset = load_dataset("imdb")
 
-    X_train_full = dataset["train"]["text"]
-    y_train_full = dataset["train"]["label"]
-    X_test       = dataset["test"]["text"]
-    y_test       = dataset["test"]["label"]
+    # Convert to plain Python lists — required for compatibility with
+    # newer datasets library versions (Arrow format causes TypeError with
+    # scikit-learn's train_test_split stratify parameter)
+    X_train_full = list(dataset["train"]["text"])
+    y_train_full = list(dataset["train"]["label"])
+    X_test       = list(dataset["test"]["text"])
+    y_test       = list(dataset["test"]["label"])
 
     X_train, X_val, y_train, y_val = train_test_split(
         X_train_full,
